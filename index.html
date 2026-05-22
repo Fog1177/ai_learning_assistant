@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI学习助手 - 个性化学习资源生成</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: #f0f4f8;
+            color: #333;
+            line-height: 1.6;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 20px;
+            text-align: center;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 8px; }
+        .header p { font-size: 14px; opacity: 0.9; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        .input-card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin: 20px 0;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .input-card label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 15px;
+        }
+        .input-card input, .input-card select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin-bottom: 20px;
+            transition: border-color 0.3s;
+        }
+        .input-card input:focus, .input-card select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn-generate {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-generate:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+        .btn-generate:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+        .loading.show { display: block; }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .results { display: none; }
+        .results.show { display: block; }
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tab-btn {
+            padding: 10px 18px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .tab-btn:hover { background: #f0f0ff; }
+        .tab-btn.active {
+            background: #667eea;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+        .tab-content.active { display: block; }
+        .tab-content h2 {
+            color: #667eea;
+            margin: 20px 0 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .tab-content h3 { color: #444; margin: 15px 0 8px; }
+        .tab-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+        }
+        .tab-content table th, .tab-content table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        .tab-content table th {
+            background: #667eea;
+            color: white;
+        }
+        .tab-content table tr:nth-child(even) { background: #f9f9f9; }
+        .tab-content ul, .tab-content ol { padding-left: 25px; }
+        .tab-content li { margin: 5px 0; }
+        .tab-content pre {
+            background: #282c34;
+            color: #abb2bf;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 10px 0;
+        }
+        .tab-content code {
+            background: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: "Consolas", "Courier New", monospace;
+        }
+        .tab-content pre code {
+            background: none;
+            padding: 0;
+        }
+        .error-msg {
+            display: none;
+            background: #fff0f0;
+            color: #d32f2f;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border-left: 4px solid #d32f2f;
+            margin: 15px 0;
+        }
+        .error-msg.show { display: block; }
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <h1>AI学习助手</h1>
+        <p>基于大模型的个性化学习资源生成系统 | 多智能体架构</p>
+    </div>
+
+    <div class="container">
+
+        <div class="input-card">
+            <label for="topic">我想学什么？</label>
+            <input type="text" id="topic"
+                   placeholder="例如：Python编程、机器学习、摄影技巧、日语入门..."
+                   value="Python编程">
+
+            <label for="level">我目前的水平？</label>
+            <select id="level">
+                <option value="零基础">零基础（完全没接触过）</option>
+                <option value="入门">入门（了解一些基本概念）</option>
+                <option value="中级">中级（有一定的使用经验）</option>
+            </select>
+
+            <button class="btn-generate" id="generateBtn" onclick="startGenerate()">
+                开始生成个性化学习资源
+            </button>
+        </div>
+
+        <div class="error-msg" id="errorMsg"></div>
+
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p id="loadingText">正在分析你的学习需求...</p>
+        </div>
+
+        <div class="results" id="results">
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('profile')">学习画像</button>
+                <button class="tab-btn" onclick="switchTab('roadmap')">学习路线图</button>
+                <button class="tab-btn" onclick="switchTab('tutorial')">学习教程</button>
+                <button class="tab-btn" onclick="switchTab('exercise')">练习题</button>
+                <button class="tab-btn" onclick="switchTab('mindmap')">思维导图</button>
+            </div>
+            <div class="tab-content active" id="tab-profile"></div>
+            <div class="tab-content" id="tab-roadmap"></div>
+            <div class="tab-content" id="tab-tutorial"></div>
+            <div class="tab-content" id="tab-exercise"></div>
+            <div class="tab-content" id="tab-mindmap"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        AI学习助手 | 中国软件杯参赛作品 | 基于DeepSeek大模型
+    </div>
+
+    <script>
+        var allData = null;
+
+        async function startGenerate() {
+            var topic = document.getElementById("topic").value.trim();
+            var level = document.getElementById("level").value;
+
+            if (!topic) {
+                alert("请输入你想学的主题！");
+                return;
+            }
+
+            document.getElementById("generateBtn").disabled = true;
+            document.getElementById("loading").classList.add("show");
+            document.getElementById("results").classList.remove("show");
+            document.getElementById("errorMsg").classList.remove("show");
+
+            var loadingMsgs = [
+                "正在分析你的学习画像...",
+                "正在制定学习路线图...",
+                "正在生成学习教程和练习题...",
+                "正在构建思维导图..."
+            ];
+
+            var msgIndex = 0;
+            var msgTimer = setInterval(function() {
+                msgIndex = (msgIndex + 1) % loadingMsgs.length;
+                document.getElementById("loadingText").textContent = loadingMsgs[msgIndex];
+            }, 5000);
+
+            try {
+                var response = await fetch("/generate", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ topic: topic, level: level })
+                });
+
+                var data = await response.json();
+
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
+                allData = data;
+                displayResults(data);
+
+            } catch (error) {
+                document.getElementById("errorMsg").textContent =
+                    "生成失败：" + error.message + " | 请检查API Key是否正确配置，或稍后重试";
+                document.getElementById("errorMsg").classList.add("show");
+            } finally {
+                clearInterval(msgTimer);
+                document.getElementById("loading").classList.remove("show");
+                document.getElementById("generateBtn").disabled = false;
+            }
+        }
+
+        function markdownToHTML(md) {
+            if (!md) return "<p>暂无内容</p>";
+
+            // 先把Windows换行符统一成\n
+            var html = md.replace(/\r\n/g, "\n");
+
+            // 代码块 (先处理，保护内部内容)
+            var codeBlocks = [];
+            html = html.replace(/```(\w*)\n([\s\S]*?)```/g, function(match, lang, code) {
+                var idx = codeBlocks.length;
+                codeBlocks.push("<pre><code>" + code.replace(/</g, "&lt;").replace(/>/g, "&gt;") + "</code></pre>");
+                return "%%CODEBLOCK_" + idx + "%%";
+            });
+
+            // 行内代码
+            html = html.replace(/`([^`]+)`/g, "<code>$1</code>");
+
+            // 粗体
+            html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+            // 表格（在标题之前处理）
+            html = html.replace(/\|(.+)\|\n\|[-| ]+\|\n((?:\|.+\|\n?)*)/g,
+                function(match, header, rows) {
+                    var tableHtml = "<table><thead><tr>";
+                    header.split("|").filter(function(c) { return c.trim(); }).forEach(function(cell) {
+                        tableHtml += "<th>" + cell.trim() + "</th>";
+                    });
+                    tableHtml += "</tr></thead><tbody>";
+                    rows.split("\n").filter(function(r) { return r.trim(); }).forEach(function(row) {
+                        tableHtml += "<tr>";
+                        row.split("|").filter(function(c) { return c.trim(); }).forEach(function(cell) {
+                            tableHtml += "<td>" + cell.trim() + "</td>";
+                        });
+                        tableHtml += "</tr>";
+                    });
+                    tableHtml += "</tbody></table>";
+                    return tableHtml;
+                });
+
+            // 标题
+            html = html.replace(/^#### (.+)$/gm, "<h4>$1</h4>");
+            html = html.replace(/^### (.+)$/gm, "<h3>$1</h3>");
+            html = html.replace(/^## (.+)$/gm, "<h2>$1</h2>");
+
+            // 无序列表
+            html = html.replace(/^- (.+)$/gm, "<li>$1</li>");
+            html = html.replace(/((?:<li>.*<\/li>\n?)+)/g, "<ul>$1</ul>");
+
+            // 分隔线
+            html = html.replace(/^---$/gm, "<hr>");
+
+            // 段落
+            html = html.replace(/\n\n/g, "</p><p>");
+            html = html.replace(/\n/g, "<br>");
+
+            html = "<p>" + html + "</p>";
+
+            // 还原代码块
+            for (var i = 0; i < codeBlocks.length; i++) {
+                html = html.replace("%%CODEBLOCK_" + i + "%%", codeBlocks[i]);
+            }
+
+            return html;
+        }
+
+        function displayResults(data) {
+            document.getElementById("tab-profile").innerHTML = markdownToHTML(data.profile);
+            document.getElementById("tab-roadmap").innerHTML = markdownToHTML(data.roadmap);
+
+            var contentMD = data.content || "";
+
+            // 按 ## 标题拆分内容
+            var parts = splitBySections(contentMD);
+
+            var tutorialParts = [];
+            var exercisePart = "";
+            var mindmapPart = "";
+
+            for (var i = 0; i < parts.length; i++) {
+                var title = parts[i].title.toLowerCase();
+                if (title.indexOf("练习") >= 0) {
+                    exercisePart = parts[i].body;
+                } else if (title.indexOf("思维导图") >= 0 || title.indexOf("知识脉络") >= 0) {
+                    mindmapPart = parts[i].body;
+                } else {
+                    tutorialParts.push(parts[i].title + "\n" + parts[i].body);
+                }
+            }
+
+            document.getElementById("tab-tutorial").innerHTML =
+                tutorialParts.length > 0 ? markdownToHTML(tutorialParts.join("\n\n")) : markdownToHTML(contentMD);
+            document.getElementById("tab-exercise").innerHTML =
+                exercisePart ? markdownToHTML(exercisePart) : "<p>练习题已整合在学习教程中，请查看教程标签页</p>";
+            document.getElementById("tab-mindmap").innerHTML =
+                mindmapPart ? markdownToHTML(mindmapPart) : "<p>思维导图已整合在学习教程中，请查看教程标签页</p>";
+
+            document.getElementById("results").classList.add("show");
+            switchTab("profile");
+
+            document.getElementById("results").scrollIntoView({ behavior: "smooth" });
+        }
+
+        // 按 ## 标题拆分Markdown内容
+        function splitBySections(md) {
+            var sections = [];
+            var lines = md.split("\n");
+            var currentTitle = "";
+            var currentBody = [];
+
+            for (var i = 0; i < lines.length; i++) {
+                var line = lines[i];
+                // 匹配 ## 开头的标题（但不匹配 ### 或 ####）
+                if (/^## [^#]/.test(line)) {
+                    if (currentTitle || currentBody.length > 0) {
+                        sections.push({
+                            title: currentTitle,
+                            body: currentBody.join("\n").trim()
+                        });
+                    }
+                    currentTitle = line.replace(/^## /, "");
+                    currentBody = [];
+                } else {
+                    currentBody.push(line);
+                }
+            }
+            // 最后一部分
+            if (currentTitle || currentBody.length > 0) {
+                sections.push({
+                    title: currentTitle,
+                    body: currentBody.join("\n").trim()
+                });
+            }
+
+            return sections;
+        }
+
+        function switchTab(tabName) {
+            // 更新标签按钮的active状态
+            document.querySelectorAll(".tab-btn").forEach(function(btn) {
+                btn.classList.remove("active");
+                if (btn.textContent.includes(getTabLabel(tabName))) {
+                    btn.classList.add("active");
+                }
+            });
+
+            // 更新内容区域的active状态
+            document.querySelectorAll(".tab-content").forEach(function(content) {
+                content.classList.remove("active");
+            });
+            document.getElementById("tab-" + tabName).classList.add("active");
+        }
+
+        function getTabLabel(tabName) {
+            var labels = {
+                "profile": "学习画像",
+                "roadmap": "学习路线图",
+                "tutorial": "学习教程",
+                "exercise": "练习题",
+                "mindmap": "思维导图"
+            };
+            return labels[tabName] || "";
+        }
+
+        document.getElementById("topic").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") {
+                startGenerate();
+            }
+        });
+    </script>
+</body>
+</html>
