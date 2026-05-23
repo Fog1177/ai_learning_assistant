@@ -194,6 +194,61 @@
         .input-area button:hover { transform: scale(1.08); }
         .input-area button:disabled { background: #ccc; cursor: not-allowed; transform: none; }
 
+        /* ========== 个人资料弹窗 ========== */
+        .modal-overlay {
+            display: none;
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.5); z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .modal-overlay.show { display: flex; }
+        .modal-card {
+            background: white; border-radius: 16px;
+            padding: 30px; width: 380px; max-width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.25);
+            animation: modalIn 0.25s ease;
+        }
+        @keyframes modalIn {
+            from { transform: translateY(-20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .modal-card .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .modal-card .modal-header h3 { font-size: 18px; color: #333; }
+        .modal-card .modal-close {
+            background: none; border: none; font-size: 24px;
+            cursor: pointer; color: #999;
+            width: 32px; height: 32px; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .modal-card .modal-close:hover { background: #f0f0f0; color: #333; }
+        .modal-avatar-lg {
+            width: 64px; height: 64px; border-radius: 50%;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 30px; color: white; margin: 0 auto 16px;
+        }
+        .modal-info-row {
+            display: flex; justify-content: space-between;
+            padding: 10px 0; border-bottom: 1px solid #f0f0f0;
+            font-size: 14px;
+        }
+        .modal-info-row .info-label { color: #999; }
+        .modal-info-row .info-value { color: #333; font-weight: bold; }
+        .modal-card .btn-changepw {
+            width: 100%; padding: 11px; margin-top: 20px;
+            background: #f0f0ff; color: #667eea;
+            border: 1px solid #667eea; border-radius: 8px;
+            cursor: pointer; font-size: 14px; font-weight: bold;
+        }
+        .modal-card .btn-changepw:hover { background: #667eea; color: white; }
+
+        /* 用户区点击 */
+        .user-section { cursor: pointer; }
+        .user-section:hover { background: rgba(255,255,255,0.05); }
+
         /* ========== 响应式 ========== */
         @media (max-width: 768px) {
             .sidebar {
@@ -220,7 +275,7 @@
             <span class="logo">AI 学习助手</span>
         </div>
 
-        <div class="user-section">
+        <div class="user-section" onclick="openProfileModal()" title="点击查看个人资料">
             <div class="avatar">👤</div>
             <div class="user-info">
                 <div class="uname" id="sidebarUsername"></div>
@@ -269,6 +324,30 @@
 
 </div>
 
+<!-- ==================== 个人资料弹窗 ==================== -->
+<div class="modal-overlay" id="profileModal" onclick="if(event.target===this)closeProfileModal()">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h3>个人资料</h3>
+            <button class="modal-close" onclick="closeProfileModal()">✕</button>
+        </div>
+        <div class="modal-avatar-lg">👤</div>
+        <div class="modal-info-row">
+            <span class="info-label">用户名</span>
+            <span class="info-value" id="modalUname">-</span>
+        </div>
+        <div class="modal-info-row">
+            <span class="info-label">邮箱</span>
+            <span class="info-value" id="modalEmail">-</span>
+        </div>
+        <div class="modal-info-row">
+            <span class="info-label">注册时间</span>
+            <span class="info-value" id="modalCreatedAt">-</span>
+        </div>
+        <button class="btn-changepw" onclick="changePassword()">修改密码</button>
+    </div>
+</div>
+
 <script>
     // ========== 登录检查 ==========
     var currentUser = localStorage.getItem("ai_currentUser");
@@ -292,6 +371,37 @@
     function logout() {
         localStorage.removeItem("ai_currentUser");
         window.location.href = "/login.html";
+    }
+
+    // ========== 个人资料弹窗 ==========
+    function openProfileModal() {
+        var currentUser = localStorage.getItem("ai_currentUser");
+        var users = JSON.parse(localStorage.getItem("ai_users") || "{}");
+        var user = users[currentUser] || {};
+
+        document.getElementById("modalUname").textContent = currentUser;
+        document.getElementById("modalEmail").textContent = user.email || "未设置";
+        // 格式化注册时间
+        var created = user.createdAt || "";
+        if (created) {
+            var d = new Date(created);
+            created = d.getFullYear() + "-" +
+                String(d.getMonth() + 1).padStart(2, "0") + "-" +
+                String(d.getDate()).padStart(2, "0") + " " +
+                String(d.getHours()).padStart(2, "0") + ":" +
+                String(d.getMinutes()).padStart(2, "0");
+        }
+        document.getElementById("modalCreatedAt").textContent = created || "未知";
+
+        document.getElementById("profileModal").classList.add("show");
+    }
+
+    function closeProfileModal() {
+        document.getElementById("profileModal").classList.remove("show");
+    }
+
+    function changePassword() {
+        alert("修改密码功能开发中，敬请期待！");
     }
 
     // ========== 错题集 ==========
