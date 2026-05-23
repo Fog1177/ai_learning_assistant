@@ -528,7 +528,7 @@
     </aside>
 
     <!-- ==================== 右侧主区域 ==================== -->
-    <main class="main">
+    <main class="main" onclick="closeSidebarIfOpen()">
         <div class="topbar">
             <button class="tb-hamburger" onclick="toggleSidebar()">☰</button>
             <span class="tb-title">AI 学习助手 · 小助</span>
@@ -583,7 +583,7 @@
 </div>
 
 <!-- ==================== 语音通话弹窗 ==================== -->
-<div class="voice-modal" id="voiceModal">
+<div class="voice-modal" id="voiceModal" onclick="if(event.target===this)closeVoiceModal()">
     <div class="voice-card">
         <button class="voice-close" onclick="closeVoiceModal()">✕</button>
         <h3>🎙️ AI 语音通话</h3>
@@ -666,6 +666,15 @@
         if (sidebar.classList.contains("closed")) {
             sidebar.classList.remove("closed");
         } else {
+            sidebar.classList.add("closed");
+        }
+    }
+
+    // 点击主内容区时自动收起侧边栏（手机端体验）
+    function closeSidebarIfOpen() {
+        var sidebar = document.getElementById("sidebar");
+        // 只在手机端（宽度<768px）且侧边栏展开时起作用
+        if (window.innerWidth <= 768 && !sidebar.classList.contains("closed")) {
             sidebar.classList.add("closed");
         }
     }
