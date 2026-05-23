@@ -274,6 +274,82 @@ def generate():
 
 
 # ============================================
+# 错题集接口：AI根据文档内容生成练习题
+# ============================================
+@app.route("/api/generate_quiz", methods=["POST"])
+def generate_quiz():
+    """根据学科和文档内容，让AI生成3道练习题"""
+    try:
+        data = request.get_json()
+        subject = data.get("subject", "").strip()
+        content = data.get("content", "").strip()
+
+        if not content:
+            return jsonify({"error": "请粘贴文档内容"}), 400
+
+        system_prompt = f"""你是一位专业的{subject}老师。请根据下面提供的文档/知识点内容，出3道练习题。
+
+要求：
+1. 题目由易到难排列
+2. 包含题目描述和参考答案
+3. 严格按照以下JSON格式输出，不要输出其他内容：
+
+[
+  {{
+    "question": "题目1描述",
+    "answer": "题目1参考答案"
+  }},
+  {{
+    "question": "题目2描述",
+    "answer": "题目2参考答案"
+  }},
+  {{
+    "question": "题目3描述",
+    "answer": "题目3参考答案"
+  }}
+]
+
+只输出JSON数组，不要有任何其他文字。"""
+
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        req_data = {
+            "model": DEEPSEEK_MODEL,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"学科：{subject}\n\n文档内容：\n{content}"}
+            ],
+            "temperature": 0.7,
+            "max_tokens": 2000
+        }
+
+        resp = requests.post(DEEPSEEK_URL, headers=headers, json=req_data, timeout=120)
+        result = resp.json()
+
+        if "error" in result:
+            raise Exception(f"API错误: {result['error']}")
+
+        raw = result["choices"][0]["message"]["content"]
+        # 清理可能的多余内容，提取JSON数组
+        raw = raw.strip()
+        if raw.startswith("```"):
+            raw = raw.split("\n", 1)[1]
+            if raw.endswith("```"):
+                raw = raw[:-3]
+
+        questions = json.loads(raw)
+        return jsonify({"questions": questions})
+
+    except json.JSONDecodeError:
+        return jsonify({"error": "AI返回格式异常，请重试"}), 500
+    except Exception as e:
+        print(f"[出题错误] {str(e)}")
+        return jsonify({"error": f"出题失败：{str(e)}"}), 500
+
+
+# ============================================
 # 首页 —— 默认打开登录页
 # ============================================
 @app.route("/")

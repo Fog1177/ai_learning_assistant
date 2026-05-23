@@ -249,6 +249,59 @@
         .user-section { cursor: pointer; }
         .user-section:hover { background: rgba(255,255,255,0.05); }
 
+        /* ========== 错题集视图 ========== */
+        .wrongbook-view {
+            flex: 1; overflow-y: auto; padding: 24px;
+            display: none;
+        }
+        .wrongbook-view.show { display: block; }
+        .wrongbook-view h2 { color: #333; margin-bottom: 20px; font-size: 20px; }
+        .wrongbook-view .wb-controls {
+            display: flex; gap: 12px; margin-bottom: 16px;
+            flex-wrap: wrap; align-items: center;
+        }
+        .wrongbook-view .wb-controls select {
+            padding: 10px 14px; border: 2px solid #e0e0e0; border-radius: 8px;
+            font-size: 14px; background: white;
+        }
+        .wrongbook-view .wb-controls input {
+            flex: 1; min-width: 120px; padding: 10px 14px;
+            border: 2px solid #e0e0e0; border-radius: 8px; font-size: 14px;
+        }
+        .wrongbook-view .wb-controls button {
+            padding: 10px 20px; border-radius: 8px; border: none;
+            font-size: 14px; font-weight: bold; cursor: pointer;
+        }
+        .wrongbook-view textarea {
+            width: 100%; height: 160px; padding: 14px;
+            border: 2px solid #e0e0e0; border-radius: 10px;
+            font-size: 14px; resize: vertical; line-height: 1.6;
+        }
+        .wrongbook-view textarea:focus { outline: none; border-color: #667eea; }
+        .quiz-card {
+            background: white; border-radius: 12px; padding: 18px 20px;
+            margin: 12px 0; box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+            border-left: 4px solid #667eea;
+        }
+        .quiz-card .q-title { font-weight: bold; color: #333; margin-bottom: 6px; }
+        .quiz-card .q-answer { color: #666; font-size: 13px; margin-bottom: 10px; }
+        .btn-sm {
+            padding: 6px 16px; border-radius: 16px; border: none;
+            font-size: 12px; cursor: pointer; font-weight: bold;
+        }
+        .btn-save { background: #667eea; color: white; }
+        .btn-save:hover { background: #5568d3; }
+        .btn-delete { background: #fff0f0; color: #d32f2f; border: 1px solid #ffcdd2; }
+        .btn-delete:hover { background: #ffe0e0; }
+        .btn-quiz {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white; padding: 10px 28px;
+        }
+        .btn-quiz:hover { opacity: 0.9; }
+        .btn-quiz:disabled { background: #ccc; cursor: not-allowed; }
+        .saved-list { margin-top: 24px; }
+        .saved-list h3 { color: #333; margin-bottom: 12px; font-size: 17px; }
+
         /* ========== 响应式 ========== */
         @media (max-width: 768px) {
             .sidebar {
@@ -314,8 +367,41 @@
         <!-- 聊天区域 -->
         <div class="chat-area" id="chatArea"></div>
 
+        <!-- 错题集视图 -->
+        <div class="wrongbook-view" id="wrongBookView">
+            <h2>📚 错题集</h2>
+
+            <!-- 控制栏 -->
+            <div class="wb-controls">
+                <select id="quizSubject">
+                    <option value="编程">编程</option>
+                    <option value="数学">数学</option>
+                    <option value="物理">物理</option>
+                    <option value="英语">英语</option>
+                </select>
+                <input type="text" id="customSubject" placeholder="或输入自定义科目...">
+            </div>
+
+            <!-- 文档输入 -->
+            <textarea id="docContent" placeholder="把课程文档、知识点、错题原文粘贴到这里...&#10;&#10;例如：&#10;- 课堂笔记内容&#10;- 某道题的题干&#10;- 教材某章的知识点总结"></textarea>
+
+            <!-- 出题按钮 -->
+            <div style="margin-top:12px;">
+                <button class="btn-quiz" id="quizBtn" onclick="generateQuiz()">🤖 AI出题（根据文档生成3道题）</button>
+            </div>
+
+            <!-- AI生成的题目展示区 -->
+            <div id="quizResults" style="margin-top:16px;"></div>
+
+            <!-- 已保存的错题列表 -->
+            <div class="saved-list" id="savedList">
+                <h3>📋 我的错题列表</h3>
+                <div id="savedQuestions"></div>
+            </div>
+        </div>
+
         <!-- 输入区域 -->
-        <div class="input-area">
+        <div class="input-area" id="chatInputArea">
             <input type="text" id="msgInput" placeholder="输入你想说的话..."
                    maxlength="500">
             <button id="sendBtn" onclick="sendMessage()" title="发送">➤</button>
@@ -404,9 +490,147 @@
         alert("修改密码功能开发中，敬请期待！");
     }
 
-    // ========== 错题集 ==========
+    // ========== 错题集：切换视图 ==========
+    var isWrongBookMode = false;
+
     function openWrongBook() {
-        alert("错题集功能即将上线！这里会收集你做错的练习题。");
+        var wbView = document.getElementById("wrongBookView");
+        var chatArea = document.getElementById("chatArea");
+        var chatInput = document.getElementById("chatInputArea");
+
+        if (!isWrongBookMode) {
+            // 切换到错题集
+            chatArea.style.display = "none";
+            chatInput.style.display = "none";
+            wbView.classList.add("show");
+            document.querySelector(".topbar .tb-title").textContent = "📚 错题集";
+            // 渲染已保存的错题
+            renderSavedQuestions();
+        } else {
+            // 切换回聊天
+            chatArea.style.display = "";
+            chatInput.style.display = "";
+            wbView.classList.remove("show");
+            document.querySelector(".topbar .tb-title").textContent = "AI 学习助手 · 小助";
+        }
+        isWrongBookMode = !isWrongBookMode;
+    }
+
+    // ========== AI出题 ==========
+    async function generateQuiz() {
+        var subject = document.getElementById("quizSubject").value;
+        var customSubject = document.getElementById("customSubject").value.trim();
+        var docContent = document.getElementById("docContent").value.trim();
+        var quizBtn = document.getElementById("quizBtn");
+
+        if (customSubject) { subject = customSubject; }
+        if (!docContent) {
+            alert("请先粘贴文档内容！");
+            return;
+        }
+
+        quizBtn.disabled = true;
+        quizBtn.textContent = "⏳ AI正在出题中...";
+
+        try {
+            var resp = await fetch("/api/generate_quiz", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ subject: subject, content: docContent })
+            });
+            var data = await resp.json();
+
+            if (data.error) {
+                document.getElementById("quizResults").innerHTML =
+                    '<p style="color:#d32f2f;">出题失败：' + data.error + '</p>';
+            } else {
+                renderQuizResults(data.questions, subject);
+            }
+        } catch (e) {
+            document.getElementById("quizResults").innerHTML =
+                '<p style="color:#d32f2f;">网络错误：' + e.message + '</p>';
+        } finally {
+            quizBtn.disabled = false;
+            quizBtn.textContent = "🤖 AI出题（根据文档生成3道题）";
+        }
+    }
+
+    // ========== 显示AI生成的题目 ==========
+    function renderQuizResults(questions, subject) {
+        var html = '<h3>📝 AI生成的题目（' + escapeHtml(subject) + '）</h3>';
+        for (var i = 0; i < questions.length; i++) {
+            var q = questions[i];
+            html += '<div class="quiz-card">';
+            html += '<div class="q-title">第' + (i + 1) + '题：' + escapeHtml(q.question) + '</div>';
+            html += '<div class="q-answer">📖 参考答案：' + escapeHtml(q.answer) + '</div>';
+            html += '<button class="btn-sm btn-save" onclick=\'saveQuestion(' +
+                JSON.stringify(q.question).replace(/'/g, "&#39;") + ', ' +
+                JSON.stringify(q.answer).replace(/'/g, "&#39;") + ', ' +
+                JSON.stringify(subject).replace(/'/g, "&#39;") + ')\'>保存到错题集</button>';
+            html += '</div>';
+        }
+        document.getElementById("quizResults").innerHTML = html;
+    }
+
+    // ========== 保存错题到localStorage ==========
+    function saveQuestion(question, answer, subject) {
+        var wrongBook = JSON.parse(localStorage.getItem("ai_wrongbook") || "[]");
+        wrongBook.unshift({
+            id: Date.now(),
+            question: question,
+            answer: answer,
+            subject: subject,
+            time: new Date().toISOString()
+        });
+        localStorage.setItem("ai_wrongbook", JSON.stringify(wrongBook));
+        renderSavedQuestions();
+        alert("已保存到错题集！");
+    }
+
+    // ========== 删除错题 ==========
+    function deleteQuestion(id) {
+        if (!confirm("确定删除这道错题吗？")) return;
+        var wrongBook = JSON.parse(localStorage.getItem("ai_wrongbook") || "[]");
+        wrongBook = wrongBook.filter(function(item) { return item.id !== id; });
+        localStorage.setItem("ai_wrongbook", JSON.stringify(wrongBook));
+        renderSavedQuestions();
+    }
+
+    // ========== 渲染已保存的错题列表 ==========
+    function renderSavedQuestions() {
+        var wrongBook = JSON.parse(localStorage.getItem("ai_wrongbook") || "[]");
+        var container = document.getElementById("savedQuestions");
+
+        if (wrongBook.length === 0) {
+            container.innerHTML = '<p style="color:#999;">还没有保存错题哦~ 用AI出题后保存到这里。</p>';
+            return;
+        }
+
+        // 按科目分组
+        var groups = {};
+        for (var i = 0; i < wrongBook.length; i++) {
+            var subj = wrongBook[i].subject || "其他";
+            if (!groups[subj]) { groups[subj] = []; }
+            groups[subj].push(wrongBook[i]);
+        }
+
+        var html = '';
+        for (var subject in groups) {
+            html += '<h4 style="color:#667eea;margin:16px 0 8px;">📌 ' + escapeHtml(subject) + '（' + groups[subject].length + '题）</h4>';
+            for (var j = 0; j < groups[subject].length; j++) {
+                var item = groups[subject][j];
+                var t = new Date(item.time);
+                var timeStr = t.getMonth() + 1 + '/' + t.getDate() + ' ' +
+                    String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+                html += '<div class="quiz-card">';
+                html += '<div class="q-title">' + escapeHtml(item.question) + '</div>';
+                html += '<div class="q-answer">📖 ' + escapeHtml(item.answer) + '</div>';
+                html += '<span style="font-size:11px;color:#999;">' + timeStr + '</span>';
+                html += ' <button class="btn-sm btn-delete" onclick="deleteQuestion(' + item.id + ')" style="float:right;">删除</button>';
+                html += '</div>';
+            }
+        }
+        container.innerHTML = html;
     }
 
     // ========== 快速对话 ==========
