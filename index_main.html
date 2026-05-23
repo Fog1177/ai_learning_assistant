@@ -402,7 +402,7 @@
 
         <!-- 输入区域 -->
         <div class="input-area" id="chatInputArea">
-            <input type="text" id="msgInput" placeholder="输入你想说的话..."
+            <input type="text" id="msgInput" placeholder="输入「我想学XXX」生成学习资源，或者随便聊聊..."
                    maxlength="500">
             <button id="sendBtn" onclick="sendMessage()" title="发送">➤</button>
         </div>
@@ -643,9 +643,10 @@
     window.onload = function() {
         addAIBubble(
             "嗨！我是你的学习伙伴 <strong>小助</strong> 😊<br><br>" +
-            "我对各种知识都很了解呢——编程、数学、语言、设计、摄影……你想学点什么？" +
-            "或者有什么想了解的？<br><br>" +
-            "跟我说说你的想法吧，不用太正式，就当和朋友聊天一样！"
+            "你可以直接说 <strong>「我想学Python」</strong> 或 <strong>「我想学机器学习」</strong>，" +
+            "我会立刻为你生成：<br>" +
+            "📋 学习画像 &nbsp; 🗺 四周路线图 &nbsp; 📖 完整教程 &nbsp; ✏️ 练习题 &nbsp; 🧠 思维导图<br><br>" +
+            "也可以随便跟我聊聊学习上的问题，当我是你的学长/学姐就好！"
         );
     };
 
@@ -656,58 +657,64 @@
         var sendBtn = document.getElementById("sendBtn");
         if (!msg) return;
 
-        // 添加用户消息
         addUserBubble(msg);
         input.value = "";
         sendBtn.disabled = true;
-
-        // 添加到历史
         chatHistory.push({ role: "user", content: msg });
 
-        // 显示"正在输入"
-        var typingEl = addTypingIndicator();
-        scrollToBottom();
+        // ---- 检测是否是"我想学XXX"模式 ----
+        var learnMatch = msg.match(/我想学(?:习)?[：:]?\s*(.+)/);
+        var genMatch = msg.match(/生成学习资源[：:]\s*(.+)/);
 
-        // 调用 /chat 对话接口
-        try {
-            var resp = await fetch("/chat", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ message: msg, history: chatHistory.slice(0, -1) })
-            });
-            var data = await resp.json();
-            typingEl.remove();
+        if (learnMatch || genMatch) {
+            // 提取主题
+            var topic = (learnMatch ? learnMatch[1] : genMatch[1]).trim();
 
-            var reply = data.reply || "（小助走神了，再说一次吧~）";
+            // 显示确认消息
+            var confirmMsg = "好的！让我来分析你的学习需求，为你生成 <strong>" + escapeHtml(topic) + "</strong> 的专属学习资源 🚀<br><br>正在调用三位AI助教：画像师分析基础 → 规划师制定路线 → 资源师编写内容...";
+            addAIBubble(confirmMsg);
+            chatHistory.push({ role: "assistant", content: confirmMsg });
 
-            // 检查是否包含生成标记 [GENERATE:主题:水平]
-            var genMatch = reply.match(/\[GENERATE:(.+?):(.+?)\]/);
-            if (genMatch) {
-                // 移除标记，显示对话内容
-                var cleanReply = reply.replace(/\[GENERATE:.*?\]/, "").trim();
-                if (cleanReply) {
-                    addAIBubble(cleanReply);
+            // 直接调用生成（默认零基础，对话中AI不会每次都问到水平）
+            await generateResources(topic, "零基础");
+        } else {
+            // ---- 正常聊天流程 ----
+            var typingEl = addTypingIndicator();
+            scrollToBottom();
+
+            try {
+                var resp = await fetch("/chat", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ message: msg, history: chatHistory.slice(0, -1) })
+                });
+                var data = await resp.json();
+
+                // 检查聊天回复中是否也包含生成标记（AI主动识别到的）
+                var reply = data.reply || "（小助走神了，再说一次吧~）";
+                var chatGenMatch = reply.match(/\[GENERATE:(.+?):(.+?)\]/);
+
+                if (chatGenMatch) {
+                    typingEl.remove();
+                    var cleanReply = reply.replace(/\[GENERATE:.*?\]/, "").trim();
+                    if (cleanReply) {
+                        addAIBubble(cleanReply);
+                        chatHistory.push({ role: "assistant", content: cleanReply });
+                    }
+                    await generateResources(chatGenMatch[1].trim(), chatGenMatch[2].trim());
+                } else {
+                    typingEl.remove();
+                    addAIBubble(reply);
+                    chatHistory.push({ role: "assistant", content: reply });
+                    addHistoryItem(msg);
                 }
-                chatHistory.push({ role: "assistant", content: cleanReply || "好的，我来为你生成学习资源！" });
-
-                // 自动触发资源生成
-                var topic = genMatch[1].trim();
-                var level = genMatch[2].trim();
-                await generateResources(topic, level);
-            } else {
-                addAIBubble(reply);
-                chatHistory.push({ role: "assistant", content: reply });
-                // 保存到历史列表
-                addHistoryItem(msg);
+            } catch (e) {
+                typingEl.remove();
+                addAIBubble("哎呀网络不太好，再说一次吧 😅");
             }
-
-        } catch (e) {
-            typingEl.remove();
-            addAIBubble("哎呀网络不太好，再说一次吧 😅");
-        } finally {
-            sendBtn.disabled = false;
         }
 
+        sendBtn.disabled = false;
         scrollToBottom();
     }
 
@@ -766,7 +773,7 @@
         return el;
     }
 
-    // ========== 添加资源卡片（带5个标签） ==========
+    // ========== 添加资源卡片（可折叠，带5个标签） ==========
     function addAIResourceCard(data) {
         var msgId = "r_" + Date.now();
         var contentMD = data.content || "";
@@ -780,9 +787,14 @@
             else { tutorialParts.push(parts[i].title + "\n" + parts[i].body); }
         }
 
-        var html = '<div style="font-weight:bold;color:#667eea;margin-bottom:8px;">为你生成 「' +
-            escapeHtml(data.topic) + '」 的学习资源：</div>';
+        // 头部：带折叠按钮
+        var html = '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">';
+        html += '<span style="font-weight:bold;color:#667eea;">✅ 学习资源已生成：「' + escapeHtml(data.topic) + '」</span>';
+        html += '<button onclick="toggleCard(\'' + msgId + '_body\',this)" style="background:none;border:1px solid #ddd;border-radius:6px;padding:4px 12px;cursor:pointer;font-size:12px;color:#999;">收起 ▲</button>';
+        html += '</div>';
 
+        // 内容体（可折叠）
+        html += '<div id="' + msgId + '_body">';
         html += '<div class="tabs-inline">';
         html += '<button class="active" onclick="switchResTab(\'' + msgId + '\',\'profile\',this)">📋 学习画像</button>';
         html += '<button onclick="switchResTab(\'' + msgId + '\',\'roadmap\',this)">🗺 路线图</button>';
@@ -799,11 +811,24 @@
             (exercisePart ? md2html(exercisePart) : "<p>练习题见教程部分</p>") + '</div>';
         html += '<div class="tab-section" id="' + msgId + '_mindmap">' +
             (mindmapPart ? md2html(mindmapPart) : "<p>思维导图见教程部分</p>") + '</div>';
+        html += '</div>'; // end card body
 
         var wrapper = document.createElement("div");
         wrapper.className = "msg-row ai";
         wrapper.innerHTML = '<div class="msg-avatar">🤖</div><div class="msg-bubble" style="max-width:100%;">' + html + '</div>';
         document.getElementById("chatArea").appendChild(wrapper);
+    }
+
+    // ========== 折叠/展开卡片 ==========
+    function toggleCard(bodyId, btn) {
+        var body = document.getElementById(bodyId);
+        if (body.style.display === "none") {
+            body.style.display = "";
+            btn.textContent = "收起 ▲";
+        } else {
+            body.style.display = "none";
+            btn.textContent = "展开 ▼";
+        }
     }
 
     // ========== 资源标签切换 ==========
