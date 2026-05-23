@@ -206,11 +206,19 @@ def generate():
 
 
 # ============================================
-# 首页 —— 返回index.html
+# 首页 —— 默认打开登录页
 # ============================================
 @app.route("/")
 def index():
-    return send_from_directory(".", "index.html")
+    return send_from_directory(".", "login.html")
+
+@app.route("/login.html")
+def login_page():
+    return send_from_directory(".", "login.html")
+
+@app.route("/index_main.html")
+def main_page():
+    return send_from_directory(".", "index_main.html")
 
 
 # ============================================

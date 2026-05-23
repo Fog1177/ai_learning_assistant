@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI学习助手 - 登录</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .card {
+            background: white;
+            border-radius: 16px;
+            padding: 40px;
+            width: 400px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+        .card h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .card .subtitle {
+            text-align: center;
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 30px;
+        }
+        .form-group {
+            margin-bottom: 18px;
+        }
+        .form-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+            font-size: 14px;
+            color: #555;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: border-color 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        .btn {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: transform 0.2s;
+        }
+        .btn:hover { transform: translateY(-2px); }
+        .msg {
+            display: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-align: center;
+        }
+        .msg.error { display: block; background: #fff0f0; color: #d32f2f; border: 1px solid #ffcdd2; }
+        .msg.success { display: block; background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+        .switch {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #999;
+        }
+        .switch a {
+            color: #667eea;
+            cursor: pointer;
+            text-decoration: none;
+            font-weight: bold;
+        }
+        .switch a:hover { text-decoration: underline; }
+        .form-panel { display: none; }
+        .form-panel.active { display: block; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+
+        <!-- ==================== 登录面板 ==================== -->
+        <div class="form-panel active" id="loginPanel">
+            <h2>AI学习助手</h2>
+            <p class="subtitle">欢迎回来，登录你的学习空间</p>
+
+            <div class="msg" id="loginMsg"></div>
+
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="loginUsername" placeholder="请输入用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="loginPassword" placeholder="请输入密码">
+            </div>
+            <button class="btn" onclick="doLogin()">登 录</button>
+
+            <p class="switch">
+                还没有账号？<a onclick="showPanel('register')">去注册</a>
+            </p>
+        </div>
+
+        <!-- ==================== 注册面板 ==================== -->
+        <div class="form-panel" id="registerPanel">
+            <h2>AI学习助手</h2>
+            <p class="subtitle">创建新账号，开启学习之旅</p>
+
+            <div class="msg" id="registerMsg"></div>
+
+            <div class="form-group">
+                <label>用户名</label>
+                <input type="text" id="regUsername" placeholder="请设置用户名">
+            </div>
+            <div class="form-group">
+                <label>密码</label>
+                <input type="password" id="regPassword" placeholder="请设置密码（至少6位）">
+            </div>
+            <div class="form-group">
+                <label>确认密码</label>
+                <input type="password" id="regPassword2" placeholder="请再次输入密码">
+            </div>
+            <button class="btn" onclick="doRegister()">注 册</button>
+
+            <p class="switch">
+                已有账号？<a onclick="showPanel('login')">去登录</a>
+            </p>
+        </div>
+
+    </div>
+
+    <script>
+        // ========== 切换登录/注册面板 ==========
+        function showPanel(type) {
+            document.getElementById("loginPanel").classList.remove("active");
+            document.getElementById("registerPanel").classList.remove("active");
+            document.getElementById("loginMsg").classList.remove("error", "success");
+            document.getElementById("registerMsg").classList.remove("error", "success");
+
+            if (type === "login") {
+                document.getElementById("loginPanel").classList.add("active");
+            } else {
+                document.getElementById("registerPanel").classList.add("active");
+            }
+        }
+
+        // ========== 显示消息 ==========
+        function showMsg(elementId, text, type) {
+            var el = document.getElementById(elementId);
+            el.textContent = text;
+            el.className = "msg " + type;
+        }
+
+        // ========== 注册 ==========
+        function doRegister() {
+            var username = document.getElementById("regUsername").value.trim();
+            var password = document.getElementById("regPassword").value;
+            var password2 = document.getElementById("regPassword2").value;
+
+            // 验证
+            if (!username) {
+                return showMsg("registerMsg", "请输入用户名", "error");
+            }
+            if (username.length < 2) {
+                return showMsg("registerMsg", "用户名至少2个字符", "error");
+            }
+            if (password.length < 6) {
+                return showMsg("registerMsg", "密码至少6位", "error");
+            }
+            if (password !== password2) {
+                return showMsg("registerMsg", "两次密码不一致", "error");
+            }
+
+            // 检查用户名是否已存在
+            var users = JSON.parse(localStorage.getItem("ai_users") || "{}");
+            if (users[username]) {
+                return showMsg("registerMsg", "该用户名已被注册", "error");
+            }
+
+            // 保存用户
+            users[username] = {
+                password: password,
+                createdAt: new Date().toISOString()
+            };
+            localStorage.setItem("ai_users", JSON.stringify(users));
+
+            showMsg("registerMsg", "注册成功！请登录", "success");
+
+            // 1.5秒后跳转到登录
+            setTimeout(function() {
+                showPanel("login");
+                document.getElementById("loginUsername").value = username;
+            }, 1500);
+        }
+
+        // ========== 登录 ==========
+        function doLogin() {
+            var username = document.getElementById("loginUsername").value.trim();
+            var password = document.getElementById("loginPassword").value;
+
+            if (!username || !password) {
+                return showMsg("loginMsg", "请输入用户名和密码", "error");
+            }
+
+            var users = JSON.parse(localStorage.getItem("ai_users") || "{}");
+            var user = users[username];
+
+            if (!user) {
+                return showMsg("loginMsg", "用户名不存在", "error");
+            }
+            if (user.password !== password) {
+                return showMsg("loginMsg", "密码错误", "error");
+            }
+
+            // 登录成功，记录当前用户
+            localStorage.setItem("ai_currentUser", username);
+            showMsg("loginMsg", "登录成功，正在跳转...", "success");
+
+            // 跳转到主页
+            setTimeout(function() {
+                window.location.href = "/index_main.html";
+            }, 800);
+        }
+
+        // ========== 回车键触发 ==========
+        document.getElementById("loginUsername").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") document.getElementById("loginPassword").focus();
+        });
+        document.getElementById("loginPassword").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") doLogin();
+        });
+        document.getElementById("regPassword2").addEventListener("keypress", function(e) {
+            if (e.key === "Enter") doRegister();
+        });
+    </script>
+</body>
+</html>
