@@ -344,6 +344,128 @@
         }
         .chart-close:hover { opacity: 0.9; }
 
+        /* ========== 语音通话弹窗 ========== */
+        .voice-modal {
+            display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.6); z-index: 100;
+            align-items: center; justify-content: center;
+        }
+        .voice-modal.show { display: flex; }
+        .voice-card {
+            background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+            border-radius: 24px; padding: 30px; width: 380px; max-width: 90%;
+            text-align: center; color: white;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+            position: relative;
+        }
+        .voice-close {
+            position: absolute; top: 14px; right: 18px;
+            background: rgba(255,255,255,0.1); border: none;
+            color: white; font-size: 18px; width: 32px; height: 32px;
+            border-radius: 50%; cursor: pointer;
+        }
+        .voice-close:hover { background: rgba(255,255,255,0.25); }
+        .voice-card h3 { font-size: 18px; margin-bottom: 6px; }
+        .voice-card .voice-subtitle { font-size: 13px; color: #a6adc8; margin-bottom: 20px; }
+
+        /* ---- 虚拟头像（纯CSS） ---- */
+        .avatar-container {
+            width: 140px; height: 140px; margin: 0 auto 20px;
+            position: relative;
+        }
+        .avatar-face {
+            width: 130px; height: 130px; border-radius: 50%;
+            background: linear-gradient(135deg, #ffd1a4, #f4a460);
+            position: absolute; top: 5px; left: 5px;
+            transition: transform 0.15s;
+        }
+        /* 眼睛 */
+        .avatar-eye {
+            position: absolute; width: 16px; height: 18px;
+            background: #333; border-radius: 50%;
+            top: 42px; transition: height 0.3s;
+        }
+        .avatar-eye.left { left: 34px; }
+        .avatar-eye.right { right: 34px; }
+        .avatar-eye .pupil {
+            width: 5px; height: 5px; background: white;
+            border-radius: 50%; position: absolute;
+            top: 4px; left: 8px;
+        }
+        /* 眨眼 */
+        .blinking .avatar-eye { height: 2px; }
+        /* 嘴巴 */
+        .avatar-mouth {
+            position: absolute; bottom: 32px; left: 50%;
+            transform: translateX(-50%);
+            width: 36px; height: 8px;
+            border-radius: 0 0 36px 36px;
+            background: #d4766b;
+            transition: all 0.2s;
+        }
+        /* 说话时嘴巴张大 */
+        .avatar-container.talking .avatar-mouth {
+            width: 28px; height: 20px;
+            border-radius: 50%;
+            animation: mouthTalk 0.3s ease-in-out infinite alternate;
+        }
+        @keyframes mouthTalk {
+            from { height: 12px; width: 24px; }
+            to { height: 24px; width: 18px; }
+        }
+        /* 听音时头像呼吸 */
+        .avatar-container.listening .avatar-face {
+            animation: breatheListen 1.2s ease-in-out infinite;
+        }
+        @keyframes breatheListen {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 20px rgba(102,126,234,0.4); }
+            50% { transform: scale(1.06); box-shadow: 0 0 40px rgba(102,126,234,0.7); }
+        }
+        /* 空闲时浮动 */
+        .avatar-container.idle .avatar-face {
+            animation: floatIdle 3s ease-in-out infinite;
+        }
+        @keyframes floatIdle {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-6px); }
+        }
+        /* 腮红 */
+        .avatar-blush {
+            position: absolute; width: 18px; height: 10px;
+            background: rgba(255,150,150,0.5); border-radius: 50%;
+            top: 58px;
+        }
+        .avatar-blush.left { left: 20px; }
+        .avatar-blush.right { right: 20px; }
+
+        /* 状态指示 */
+        .voice-status {
+            font-size: 14px; color: #a6e3a1; margin: 8px 0;
+            min-height: 20px;
+        }
+        .voice-text {
+            background: rgba(255,255,255,0.08); border-radius: 12px;
+            padding: 10px 16px; font-size: 13px; color: #cdd6f4;
+            min-height: 40px; margin: 10px 0; line-height: 1.5;
+        }
+        .voice-btn {
+            padding: 12px 32px; border-radius: 24px; border: none;
+            font-size: 15px; font-weight: bold; cursor: pointer;
+            transition: all 0.3s; margin: 6px;
+        }
+        .voice-btn.start {
+            background: #a6e3a1; color: #1a1a2e;
+        }
+        .voice-btn.start:hover { background: #89d88a; }
+        .voice-btn.start:disabled { background: #555; color: #999; cursor: not-allowed; }
+        .voice-btn.stop {
+            background: #f38ba8; color: white;
+        }
+        .voice-btn.stop:hover { background: #e06c8a; }
+        .voice-hint {
+            font-size: 11px; color: #6c7086; margin-top: 12px;
+        }
+
         /* ========== 响应式 ========== */
         @media (max-width: 768px) {
             .sidebar {
@@ -453,10 +575,46 @@
         <div class="input-area" id="chatInputArea">
             <input type="text" id="msgInput" placeholder="输入「我想学XXX」生成学习资源，或者随便聊聊..."
                    maxlength="500">
+            <button style="width:42px;height:42px;border-radius:50%;background:#f0f0f0;color:#667eea;border:none;font-size:18px;cursor:pointer;flex-shrink:0;" onclick="openVoiceModal()" title="语音通话">🎤</button>
             <button id="sendBtn" onclick="sendMessage()" title="发送">➤</button>
         </div>
     </main>
 
+</div>
+
+<!-- ==================== 语音通话弹窗 ==================== -->
+<div class="voice-modal" id="voiceModal">
+    <div class="voice-card">
+        <button class="voice-close" onclick="closeVoiceModal()">✕</button>
+        <h3>🎙️ AI 语音通话</h3>
+        <p class="voice-subtitle">和小助语音聊天吧！</p>
+
+        <!-- 虚拟形象 -->
+        <div class="avatar-container idle" id="avatarContainer">
+            <div class="avatar-face">
+                <div class="avatar-eye left"><div class="pupil"></div></div>
+                <div class="avatar-eye right"><div class="pupil"></div></div>
+                <div class="avatar-mouth"></div>
+                <div class="avatar-blush left"></div>
+                <div class="avatar-blush right"></div>
+            </div>
+        </div>
+
+        <!-- 状态文字 -->
+        <div class="voice-status" id="voiceStatus">准备好倾听你的声音 💬</div>
+
+        <!-- 识别/回复文字 -->
+        <div class="voice-text" id="voiceText">点击下方按钮开始说话~</div>
+
+        <!-- 按钮 -->
+        <div>
+            <button class="voice-btn start" id="voiceStartBtn" onclick="startListening()">🎤 开始说话</button>
+            <button class="voice-btn stop" id="voiceStopBtn" onclick="stopListening()" style="display:none;">⏹ 停止</button>
+        </div>
+        <p class="voice-hint">
+            推荐使用 Chrome / Edge 浏览器<br>需要麦克风权限
+        </p>
+    </div>
 </div>
 
 <!-- ==================== 7天统计图表弹窗 ==================== -->
@@ -1058,6 +1216,207 @@
             sendMessage();
         }
     });
+
+    // ========== 语音通话功能 ==========
+    var recognition = null;
+    var isListening = false;
+
+    // 判断浏览器是否支持语音识别
+    var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    function openVoiceModal() {
+        document.getElementById("voiceModal").classList.add("show");
+        setAvatarState("idle");
+    }
+
+    function closeVoiceModal() {
+        stopListening();
+        window.speechSynthesis.cancel(); // 停止朗读
+        document.getElementById("voiceModal").classList.remove("show");
+    }
+
+    // 切换虚拟形象状态
+    function setAvatarState(state) {
+        var avatar = document.getElementById("avatarContainer");
+        avatar.className = "avatar-container " + state;
+    }
+
+    // 眨眼动画（每3秒眨一次）
+    setInterval(function() {
+        var avatar = document.getElementById("avatarContainer");
+        avatar.classList.add("blinking");
+        setTimeout(function() { avatar.classList.remove("blinking"); }, 200);
+    }, 3000);
+
+    // ========== 开始语音识别 ==========
+    function startListening() {
+        if (!SpeechRecognition) {
+            alert("您的浏览器不支持语音识别，请使用 Chrome 或 Edge 浏览器。");
+            return;
+        }
+
+        if (isListening) return;
+
+        recognition = new SpeechRecognition();
+        recognition.lang = "zh-CN";        // 中文识别
+        recognition.interimResults = false; // 只返回最终结果
+        recognition.continuous = false;     // 说一句就停
+        recognition.maxAlternatives = 1;
+
+        recognition.onstart = function() {
+            isListening = true;
+            document.getElementById("voiceStartBtn").style.display = "none";
+            document.getElementById("voiceStopBtn").style.display = "inline-block";
+            document.getElementById("voiceStatus").textContent = "🎧 正在倾听中...";
+            document.getElementById("voiceText").textContent = "请对着麦克风说话...";
+            setAvatarState("listening");
+        };
+
+        recognition.onresult = function(event) {
+            var text = event.results[0][0].transcript;
+            document.getElementById("voiceText").textContent = "你说：" + text;
+            // 识别到文字后，发给AI
+            processVoiceMessage(text);
+        };
+
+        recognition.onerror = function(event) {
+            var errMsg = "语音识别出错：" + event.error;
+            if (event.error === "not-allowed") {
+                errMsg = "请允许麦克风权限后重试";
+            } else if (event.error === "no-speech") {
+                errMsg = "没有检测到语音，请再试一次";
+            }
+            document.getElementById("voiceText").textContent = errMsg;
+            resetVoiceButtons();
+            setAvatarState("idle");
+            isListening = false;
+        };
+
+        recognition.onend = function() {
+            isListening = false;
+            resetVoiceButtons();
+        };
+
+        recognition.start();
+    }
+
+    // ========== 停止语音识别 ==========
+    function stopListening() {
+        if (recognition && isListening) {
+            recognition.stop();
+            isListening = false;
+        }
+        resetVoiceButtons();
+        setAvatarState("idle");
+    }
+
+    function resetVoiceButtons() {
+        document.getElementById("voiceStartBtn").style.display = "inline-block";
+        document.getElementById("voiceStopBtn").style.display = "none";
+    }
+
+    // ========== 处理语音消息：发给AI + 朗读回复 ==========
+    async function processVoiceMessage(userText) {
+        setAvatarState("idle");
+        document.getElementById("voiceStatus").textContent = "🤔 小助正在思考...";
+
+        try {
+            // 发给聊天接口
+            var resp = await fetch("/chat", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ message: userText, history: chatHistory.slice(-5) })
+            });
+            var data = await resp.json();
+            var reply = data.reply || "小助没听清，再说一次吧~";
+
+            // 显示回复文字
+            document.getElementById("voiceText").textContent = "小助：" + reply;
+            document.getElementById("voiceStatus").textContent = "🔊 小助正在说话...";
+
+            // 添加到聊天记录（同步到主聊天界面）
+            addUserBubble(userText);
+            chatHistory.push({ role: "user", content: userText });
+            addAIBubble(reply);
+            chatHistory.push({ role: "assistant", content: reply });
+            recordLearning();
+
+            // 检测是否有生成标记
+            var genMatch = reply.match(/\[GENERATE:(.+?):(.+?)\]/);
+            if (genMatch) {
+                var cleanReply = reply.replace(/\[GENERATE:.*?\]/, "").trim();
+                if (cleanReply) {
+                    // 朗读清理后的回复
+                    speakText(cleanReply);
+                }
+                // 触发生成
+                await generateResources(genMatch[1].trim(), genMatch[2].trim());
+                return;
+            }
+
+            // 朗读AI回复
+            speakText(reply);
+
+        } catch (e) {
+            document.getElementById("voiceText").textContent = "网络错误：" + e.message;
+            document.getElementById("voiceStatus").textContent = "😅 出了点问题";
+        }
+    }
+
+    // ========== 文字转语音（浏览器自带TTS） ==========
+    function speakText(text) {
+        // 去掉Markdown标记，保留纯文本
+        var cleanText = text
+            .replace(/\*\*(.+?)\*\*/g, "$1")
+            .replace(/```[\s\S]*?```/g, "")
+            .replace(/`([^`]+)`/g, "$1")
+            .replace(/\[GENERATE:.*?\]/g, "")
+            .replace(/[#*>\-|]/g, "")
+            .replace(/\n{2,}/g, "。")
+            .replace(/\n/g, "")
+            .trim();
+
+        // 如果文本太长，截断
+        if (cleanText.length > 500) {
+            cleanText = cleanText.substring(0, 500) + "...";
+        }
+
+        var utterance = new SpeechSynthesisUtterance(cleanText);
+        utterance.lang = "zh-CN";
+        utterance.rate = 1.1;  // 语速稍快
+        utterance.pitch = 1.1; // 音调稍高（更亲切）
+
+        // 尝试选择中文女声
+        var voices = window.speechSynthesis.getVoices();
+        var zhVoice = voices.find(function(v) { return v.lang.indexOf("zh") >= 0 && v.name.indexOf("Tingting") >= 0; });
+        if (!zhVoice) {
+            zhVoice = voices.find(function(v) { return v.lang.indexOf("zh") >= 0; });
+        }
+        if (zhVoice) { utterance.voice = zhVoice; }
+
+        // 朗读时嘴巴张合
+        setAvatarState("talking");
+
+        utterance.onend = function() {
+            setAvatarState("idle");
+            document.getElementById("voiceStatus").textContent = "准备好倾听你的声音 💬";
+        };
+
+        utterance.onerror = function() {
+            setAvatarState("idle");
+            document.getElementById("voiceStatus").textContent = "准备好倾听你的声音 💬";
+        };
+
+        window.speechSynthesis.cancel(); // 取消之前可能还在读的内容
+        window.speechSynthesis.speak(utterance);
+    }
+
+    // 预加载语音列表
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = function() {
+        window.speechSynthesis.getVoices();
+    };
+
 </script>
 </body>
 </html>
