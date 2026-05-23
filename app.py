@@ -163,6 +163,74 @@ def agent_creator(topic, level):
 
 
 # ============================================
+# 智能体4：对话助手 —— 自然聊天，引导学习
+# ============================================
+@app.route("/chat", methods=["POST"])
+def chat():
+    """友好的对话式AI，像朋友一样聊天并引导学习"""
+    try:
+        data = request.get_json()
+        user_message = data.get("message", "").strip()
+        history = data.get("history", [])
+
+        if not user_message:
+            return jsonify({"error": "请输入消息"}), 400
+
+        system_prompt = """你是一个AI学习助手，名叫"小助"，你的性格像一个热情友好的学长/学姐。
+
+你的说话风格：
+- 像朋友一样聊天，用"你"称呼对方，语气亲切但不油腻
+- 对话中适当使用"哈哈"、"呢"、"哦"、"啦"等轻松的语气词
+- 回复简短自然，不要长篇大论（除非对方需要详细解释）
+- 偶尔用emoji表达情绪 😊
+
+你的核心任务：
+1. 主动了解对方想学什么，对什么领域感兴趣
+2. 了解对方目前的基础水平（零基础/入门/中级）
+3. 根据对方的兴趣，简要介绍这个领域，激发学习兴趣
+4. 当对方表达了想学的东西并且你了解了水平后，在回复末尾加上这一行特殊标记：
+   [GENERATE:对方想学的主题:对方水平]
+
+重要规则：
+- 不要一下子问太多问题，像聊天一样自然推进
+- 如果对方还没说想学什么，就聊聊学习相关的话题引导
+- 如果对方说了想学的但没说水平，就问问基础如何
+- 回复控制在50-150字之间（除非对方要求详细解释）
+- 不要说"我是AI"之类出戏的话"""
+
+        # 构建消息历史
+        messages = [{"role": "system", "content": system_prompt}]
+        for h in history[-10:]:  # 只保留最近10条
+            messages.append(h)
+        messages.append({"role": "user", "content": user_message})
+
+        headers = {
+            "Authorization": f"Bearer {DEEPSEEK_API_KEY}",
+            "Content-Type": "application/json"
+        }
+        req_data = {
+            "model": DEEPSEEK_MODEL,
+            "messages": messages,
+            "temperature": 0.8,
+            "max_tokens": 800
+        }
+
+        response = requests.post(DEEPSEEK_URL, headers=headers, json=req_data, timeout=60)
+        result = response.json()
+
+        if "error" in result:
+            raise Exception(f"API错误: {result['error']}")
+
+        reply = result["choices"][0]["message"]["content"]
+
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        print(f"[聊天错误] {str(e)}")
+        return jsonify({"reply": f"哎呀，消息发送失败啦：{str(e)}"}), 500
+
+
+# ============================================
 # 主路由：接收前端请求，调用3个智能体
 # ============================================
 @app.route("/generate", methods=["POST"])
